@@ -7,7 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="RemoteRun\AzureMLOperations.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--<PackageReference Include="Azure.MachineLearning.Services" Version="0.2.0-CI-20190718-130052" />-->
+    <!--<PackageReference Include="Microsoft.Azure.Management.ResourceManager.Fluent" Version="1.9.2" />-->
     <PackageReference Include="Microsoft.CodeAnalysis" Version="2.10.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.4.0" />
+    <PackageReference Include="Microsoft.IdentityModel.Clients.ActiveDirectory" Version="5.2.2" />
+    <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="1.3.1" />
     <PackageReference Include="NLog" Version="4.5.11" />
     <PackageReference Include="System.CodeDom" Version="4.5.0" />
     <PackageReference Include="System.CommandLine.Experimental" Version="0.2.0-alpha.19174.3" />
@@ -18,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.ML.AutoML\Microsoft.ML.AutoML.csproj" />
+    <ProjectReference Include="..\Microsoft.ML.AzureMLClient\Microsoft.ML.AzureMLClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,30 +40,50 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.resx</DependentUpon>
     </Compile>
-    <Compile Update="Templates\Console\ModelProject.cs">
+    <Compile Update="Templates\Console\ModelOutputClass - Copy.cs">
+      <DependentUpon>ModelOutputClass.tt</DependentUpon>
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="Templates\Console\ModelProject - Copy.cs">
       <DependentUpon>ModelProject.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="Templates\Console\OnnxModelProject.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>OnnxModelProject.tt</DependentUpon>
     </Compile>
     <Compile Update="Templates\Console\ModelInputClass.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>ModelInputClass.tt</DependentUpon>
     </Compile>
-    <Compile Update="Templates\Console\ModelOutputClass.cs">
+    <Compile Update="Templates\Console\OnnxModelOutputClass.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>ModelOutputClass.tt</DependentUpon>
+      <DependentUpon>OnnxModelOutputClass.tt</DependentUpon>
     </Compile>
-    <Compile Update="Templates\Console\PredictProgram.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
+    <Compile Update="Templates\Console\PredictProgram - Copy.cs">
       <DependentUpon>PredictProgram.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Templates\Console\PredictProject.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="Templates\Console\OnnxPredictProgram.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>OnnxPredictProgram.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Templates\Console\PredictProject - Copy.cs">
       <DependentUpon>PredictProject.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
+    <Compile Update="Templates\Console\OnnxPredictProject.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>OnnxPredictProject.tt</DependentUpon>
     </Compile>
     <Compile Update="Templates\Console\ModelBuilder.cs">
       <DesignTime>True</DesignTime>
@@ -73,9 +103,26 @@
     <None Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="RemoteRun\get_data_UCI_Adult.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="RemoteRun\get_data_digits.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="RemoteRun\get_data.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Templates\Console\OnnxModelOutputClass.tt">
+      <LastGenOutput>OnnxModelOutputClass.cs</LastGenOutput>
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+    </None>
+    <None Update="Templates\Console\OnnxModelProject.tt">
+      <LastGenOutput>OnnxModelProject.cs</LastGenOutput>
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+    </None>
     <None Update="Templates\Console\ModelProject.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>ModelProject.cs</LastGenOutput>
+      <LastGenOutput>OnnxModelProject.cs</LastGenOutput>
     </None>
     <None Update="Templates\Console\ModelInputClass.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
@@ -83,15 +130,23 @@
     </None>
     <None Update="Templates\Console\ModelOutputClass.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>ModelOutputClass.cs</LastGenOutput>
+      <LastGenOutput>OnnxModelOutputClass.cs</LastGenOutput>
+    </None>
+    <None Update="Templates\Console\OnnxPredictProgram.tt">
+      <LastGenOutput>OnnxPredictProgram.cs</LastGenOutput>
+      <Generator>TextTemplatingFilePreprocessor</Generator>
     </None>
     <None Update="Templates\Console\PredictProgram.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>PredictProgram.cs</LastGenOutput>
+      <LastGenOutput>OnnxPredictProgram.cs</LastGenOutput>
+    </None>
+    <None Update="Templates\Console\OnnxPredictProject.tt">
+      <LastGenOutput>OnnxPredictProject.cs</LastGenOutput>
+      <Generator>TextTemplatingFilePreprocessor</Generator>
     </None>
     <None Update="Templates\Console\PredictProject.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>
-      <LastGenOutput>PredictProject.cs</LastGenOutput>
+      <LastGenOutput>OnnxPredictProject.cs</LastGenOutput>
     </None>
     <None Update="Templates\Console\ModelBuilder.tt">
       <Generator>TextTemplatingFilePreprocessor</Generator>

@@ -32,7 +32,7 @@ namespace Microsoft.ML.CLI
             var mlNetCommandEvent = new MLNetCommandEvent();
 
             // Create handler outside so that commandline and the handler is decoupled and testable.
-            var handler = CommandHandler.Create<NewCommandSettings>(
+            var autoTrainHandler = CommandHandler.Create<NewCommandSettings>(
                 (options) =>
              {
                  try
@@ -85,9 +85,63 @@ namespace Microsoft.ML.CLI
                  }
              });
 
+            var azureAutoTrainHandler = CommandHandler.Create<AzureAutoTrainCommandSettings>(
+                (options) =>
+                {
+                    try
+                    {
+                        // Send telemetry event for command issued
+                        //mlNetCommandEvent.AutoTrainCommandSettings = null; // TODO
+                        //mlNetCommandEvent.TrackEvent();
+
+                        // Map the verbosity to internal levels
+                        var verbosity = Utils.GetVerbosity(options.Verbosity);
+
+                        // Build the output path
+                        string outputBaseDir = string.Empty;
+                        if (options.Name == null)
+                        {
+                            options.Name = "Sample" + Utils.GetTaskKind(options.MlTask).ToString();
+                            outputBaseDir = options.Name;
+                        }
+                        else
+                        {
+                            outputBaseDir = options.Name;
+                        }
+
+                        // Override the output path
+                        options.OutputPath = new DirectoryInfo(outputBaseDir);
+
+                        // Instantiate the command
+                        var command = new AzureAutoTrainCommand(options);
+
+                        // Override the Logger Configuration
+                        var logconsole = LogManager.Configuration.FindTargetByName("logconsole");
+                        var logfile = (FileTarget)LogManager.Configuration.FindTargetByName("logfile");
+                        var logFilePath = Path.Combine(Path.Combine(outputBaseDir, "logs"), "debug_log.txt");
+                        logfile.FileName = logFilePath;
+                        options.LogFilePath = logFilePath;
+                        var config = LogManager.Configuration;
+                        config.AddRule(verbosity, LogLevel.Fatal, logconsole);
+
+                        // Execute the command
+                        command.Execute();
+                        exitCode = 0;
+                    }
+                    catch (Exception e)
+                    {
+                        ex = e;
+                        _logger.Log(LogLevel.Error, e.Message);
+                        _logger.Log(LogLevel.Debug, e.ToString());
+                        _logger.Log(LogLevel.Info, Strings.LookIntoLogFile);
+                        _logger.Log(LogLevel.Error, Strings.Exiting);
+                    }
+                });
+
             var parser = new CommandLineBuilder()
                          // parser
-                         .AddCommand(CommandDefinitions.AutoTrain(handler))
+                         .AddCommand(CommandDefinitions.AutoTrain(autoTrainHandler))
+                         .AddCommand(AzureAutoTrainHandler.AzureAutoTrain(azureAutoTrainHandler))
                          .UseDefaults()
                          .Build();
 
