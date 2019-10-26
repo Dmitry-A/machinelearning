@@ -34,6 +34,15 @@ namespace Azure.MachineLearning.Services.AutoML
 
             CreateParentRunDto createParentRunDto = CreateParentRunDtoFromConfiguration(configuration);
 
+            string jasonSettingsString = $"{{\"debug_log\": \"automl_errors.log\", \"primary_metric\": \"accuracy\", \"iterations\": 2, \"compute_target\": \"{configuration.ComputeTarget.Name}\",\"images_folder\": \"{configuration.AutoMLSettings.ImagesFolder}\" , \"enable_dnn\": true, \"labels_file\": \"{configuration.AutoMLSettings.LabelsFile}\", \"max_concurrent_iterations\": 5, \"max_cores_per_iteration\": 2, \'exit_score\': 0.90, \'metric_operation\': \"maximize\", \"task_type\": \"image-classification\", \"epochs\": 2}}";
+            string rawAMLSettingsString = $"{{'debug_log': 'automl_errors.log', 'primary_metric': 'accuracy', 'iterations': 2, 'compute_target': '{configuration.ComputeTarget.Name}', 'images_folder': '{configuration.AutoMLSettings.ImagesFolder}', 'enable_dnn': True, 'labels_file': '{configuration.AutoMLSettings.LabelsFile}', 'max_concurrent_iterations': 5, 'max_cores_per_iteration': 2, 'exit_score': 0.90, 'metric_operation': 'maximize', 'task_type': 'image-classification', 'epochs': 2}}";
+
+            createParentRunDto.AmlSettingsJsonString = jasonSettingsString;
+            createParentRunDto.RawAMLSettingsString = rawAMLSettingsString;
+
+            //createParentRunDto.AmlSettingsJsonString = 
+            //"@{ "iteration_timeout_minutes":30,"iterations":5,"task_type":"image-classification","primary_metric":"accuracy","preprocess":true,"n_cross_validations":5,"validation_size":0.0,"enable_subsampling":false,"enable_onnx_compatible_models":false,"enable_tf":true,"debug_log":"automl_errors.log","images_folder":"images/crack","enable_dnn":true,"labels_file":"images/crack/labels.csv","epochs":2}
+
             // Require that Jasmine sends us back JSON so we can
             // properly deserialize the result.
             Dictionary<string, List<string>> customHeadersWithAcceptJson;
@@ -45,6 +54,7 @@ namespace Azure.MachineLearning.Services.AutoML
             {
                 customHeadersWithAcceptJson = new Dictionary<string, List<string>>(customHeaders);
             }
+
             customHeadersWithAcceptJson.Add("Accept", new List<string>() { "application/json" });
 
             string parentRunId = await RestCallWrapper.WrapAsync(
@@ -85,6 +95,8 @@ namespace Azure.MachineLearning.Services.AutoML
                 parentRunId,
                 snapshotId);
 
+            var runDefinitionJson = JsonConvert.SerializeObject(runDefinition);
+
             await RestCallWrapper.WrapAsync(
                 () => restClient.Jasmine.PostRemoteSnapshotRunWithHttpMessagesAsync(
                     ServiceContext.SubscriptionId,
@@ -92,7 +104,7 @@ namespace Azure.MachineLearning.Services.AutoML
                     ServiceContext.WorkspaceName,
                     experimentName,
                     parentRunId,
-                    JsonConvert.SerializeObject(runDefinition),
+                    runDefinitionJson,
                     snapshotId,
                     customHeaders: customHeaders,
                     cancellationToken: cancellationToken)).ConfigureAwait(false);

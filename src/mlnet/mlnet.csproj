@@ -40,16 +40,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.resx</DependentUpon>
     </Compile>
-    <Compile Update="Templates\Console\ModelOutputClass - Copy.cs">
-      <DependentUpon>ModelOutputClass.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-    </Compile>
-    <Compile Update="Templates\Console\ModelProject - Copy.cs">
-      <DependentUpon>ModelProject.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-    </Compile>
     <Compile Update="Templates\Console\OnnxModelProject.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -65,20 +55,10 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>OnnxModelOutputClass.tt</DependentUpon>
     </Compile>
-    <Compile Update="Templates\Console\PredictProgram - Copy.cs">
-      <DependentUpon>PredictProgram.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-    </Compile>
     <Compile Update="Templates\Console\OnnxPredictProgram.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>OnnxPredictProgram.tt</DependentUpon>
-    </Compile>
-    <Compile Update="Templates\Console\PredictProject - Copy.cs">
-      <DependentUpon>PredictProject.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
     </Compile>
     <Compile Update="Templates\Console\OnnxPredictProject.cs">
       <DesignTime>True</DesignTime>

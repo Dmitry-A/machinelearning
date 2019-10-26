@@ -18,7 +18,7 @@ using Microsoft.Rest;
 
 namespace AzureML
 {
-    internal static class AutoMLRunner1
+    internal static class AutoMLRunner
     {
         private const string _dataRefName = "AUTOML1";
 
@@ -147,7 +147,7 @@ namespace AzureML
 
         private static RunConfigurationBase GetTrainingRunConfig(Workspace workspace, ComputeTarget ct, TimeSpan maxExplorationTime, string taskType, string trainingFileName, string labelColumnName)
         {
-            var datastores = workspace.Datastores.List().Where(ds => ds.DatastoreName.ToLowerInvariant() == "workspacefilestore");
+            var datastores = workspace.Datastores.List().Where(ds => ds.DatastoreName.ToLowerInvariant() == "workspaceblobstore"); // *
 
             if (datastores.Count() == 0)
             {
@@ -169,38 +169,55 @@ namespace AzureML
             //    "traindata",
             //    defaultStorageContainer, accountKey: "").Result;
 
-            // Construct a data reference
-            var drc = new DataReferenceConfiguration();
-            drc.DataStoreName = datastore.DatastoreName;
-            drc.Mode = DataStoreMode.Mount;
-            drc.PathOnDataStore = string.Empty;
-
-            string projectFolder = Path.Combine(Directory.GetCurrentDirectory(), "project");
-            string getDataPath = GetGetDataPath(projectFolder);
-            GenerateGetData.GenerateGetDataPy(_dataRefName, trainingFileName, labelColumnName, getDataPath);
+            //string projectFolder = Path.Combine(Directory.GetCurrentDirectory(), "project");
+            //string getDataPath = GetGetDataPath(projectFolder);
+            //GenerateGetData.GenerateGetDataPy(_dataRefName, trainingFileName, labelColumnName, getDataPath);
 
             var autoMLSettings = new AutoMLSettings(
                iterationTimeoutInMin: (int)maxExplorationTime.TotalMinutes,
                iterations: 5,
-               primaryMetric: "AUC_weighted",
+               primaryMetric: "accuracy",
                preprocess: true,
                nCrossValidations: 5);
 
-            autoMLSettings.TaskType = taskType;
-            autoMLSettings.EnableOnnxCompatibleModels = true;
-            autoMLSettings.EnableTensorFlow = false;
+            // * \/
+            autoMLSettings.TaskType = "image-classification";
+            autoMLSettings.EnableOnnxCompatibleModels = false;
+            autoMLSettings.EnableTensorFlow = true;
+            autoMLSettings.EnableDnn = true;
+            autoMLSettings.ImagesFolder = "images";
+            autoMLSettings.LabelsFile = "images/WeatherData/weather.tsv";
+            //autoMLSettings.ImagesFolder = "images";
+            //autoMLSettings.LabelsFile = "images/crack/labels.csv";
+            autoMLSettings.Epochs = 2;
+            autoMLSettings.ComputeTarget = ct.Name;
 
             var autoMLConfig = new AutoMLConfiguration(
                 autoMLSettings: autoMLSettings,
-                projectFolder: new DirectoryInfo(projectFolder),
+                projectFolder: null, //new DirectoryInfo(projectFolder), // *
                 task: taskType);
 
             //autoMLConfig.DockerConfiguration.Enabled = true;
             autoMLConfig.PipPackages.Add("azureml-sdk[automl]");
             autoMLConfig.ComputeTarget = ct;
 
-            autoMLConfig.DataReferences = new Dictionary<string, DataReferenceConfiguration>();
-            autoMLConfig.DataReferences.Add(_dataRefName, drc);
+            // Construct a data reference
+            var drc = new DataReferenceConfiguration();
+            drc.DataStoreName = datastore.DatastoreName;
+            drc.Mode = DataStoreMode.Mount;
+            //drc.PathOnDataStore = string.Empty;
+
+            autoMLConfig.PythonVersion = new Version(3, 6, 5);
+            autoMLConfig.DockerConfiguration.BaseImage = "mcr.microsoft.com/azureml/base-gpu:intelmpi2018.3-cuda10.0-cudnn7-ubuntu16.04";
+
+            autoMLConfig.PythonVersion = new Version(3, 6, 5);
+            autoMLConfig.ScriptFile = new FileInfo("train.py");
+
+            autoMLConfig.DataReferences = new Dictionary<string, DataReferenceConfiguration>()
+            {
+                { "default", new DataReferenceConfiguration() { DataStoreName = datastore.DatastoreName, Mode = DataStoreMode.Mount } },
+                { "labels_file_root", new DataReferenceConfiguration() { DataStoreName = datastore.DatastoreName, Mode = DataStoreMode.Mount } }
+            };
 
             return autoMLConfig;
         }

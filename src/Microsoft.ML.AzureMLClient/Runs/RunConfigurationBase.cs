@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Azure.MachineLearning.Services.Compute;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Azure.MachineLearning.Services.Runs
@@ -160,28 +161,58 @@ namespace Azure.MachineLearning.Services.Runs
 
         private JObject ConstructCondaDependenciesJSON()
         {
-            // Specify a conda environment which
-            // - Uses the requested python version
-            // - Installs the azureml-default pip package
-            var condaDeps = new JObject();
-            condaDeps.Add(new JProperty("name", RunConstants.DefaultCondaEnvironmentName));
-
-            var envArr = new JArray();
-            envArr.Add(new JValue(string.Format("python={0}", this.PythonVersion.ToString())));
-
-            var pipList = new JArray();
-            pipList.Add(new JValue("azureml-defaults"));
-            foreach (string p in this.PipPackages)
+            string _condaDependencies = @"
             {
-                pipList.Add(new JValue(p));
-            }
-            var pipProperty = new JProperty("pip", pipList);
-            envArr.Add(new JObject(pipProperty));
+                'name': 'project_environment',
+                'dependencies': [
+                    'python=3.6.2',
+                    {
+                        'pip': [
+                            '--index-url https://azuremlsdktestpypi.azureedge.net/sdk-release/master/588E708E0DF342C4A80BD954289657CF',
+                            '--extra-index-url https://pypi.python.org/simple',
+                            'azureml-sdk[automl]==0.1.0.3603131.*',
+                            'pytorch-ignite',
+                            'pretrainedmodels'
+                        ]
+                    },
+                    'numpy',
+                    'torch',
+                    'torchvision'
+                ],
+                'channels': [
+                'conda-forge'
+                ]
+            }";
 
-            condaDeps.Add(
-                new JProperty(
-                    "dependencies", envArr));
-            return condaDeps;
+            var condaDeps = JsonConvert.DeserializeObject<JToken>(_condaDependencies);
+
+            return (JObject)condaDeps;
         }
+
+        //private JObject ConstructCondaDependenciesJSON()
+        //{
+        //    // Specify a conda environment which
+        //    // - Uses the requested python version
+        //    // - Installs the azureml-default pip package
+        //    var condaDeps = new JObject();
+        //    condaDeps.Add(new JProperty("name", RunConstants.DefaultCondaEnvironmentName));
+
+        //    var envArr = new JArray();
+        //    envArr.Add(new JValue(string.Format("python={0}", this.PythonVersion.ToString())));
+
+        //    var pipList = new JArray();
+        //    pipList.Add(new JValue("azureml-defaults"));
+        //    foreach (string p in this.PipPackages)
+        //    {
+        //        pipList.Add(new JValue(p));
+        //    }
+        //    var pipProperty = new JProperty("pip", pipList);
+        //    envArr.Add(new JObject(pipProperty));
+
+        //    condaDeps.Add(
+        //        new JProperty(
+        //            "dependencies", envArr));
+        //    return condaDeps;
+        //}
     }
 }

@@ -16,13 +16,16 @@ namespace Azure.MachineLearning.Services.AutoML
         public AutoMLConfiguration(
             AutoMLSettings autoMLSettings,
             string task,
-            DirectoryInfo projectFolder)
+            DirectoryInfo projectFolder = null)
         {
             Throw.IfNull(autoMLSettings, nameof(autoMLSettings));
             Throw.IfNullOrEmpty(task, nameof(task));
-            Throw.IfDirectoryNotExists(projectFolder, nameof(projectFolder));
 
-            CheckPathForDataScript(projectFolder);
+            if (projectFolder != null)
+            {
+                Throw.IfDirectoryNotExists(projectFolder, nameof(projectFolder));
+                CheckPathForDataScript(projectFolder);
+            }
 
             AutoMLSettings = autoMLSettings;
             Task = task;
@@ -66,13 +69,15 @@ namespace Azure.MachineLearning.Services.AutoML
 
         internal RunDefinition BuildChildRunDefinition(string parentRunId, Guid? snapshotId)
         {
-            return new RunDefinition
+            var runDef = new RunDefinition
             {
                 Configuration = ConstructRunConfiguration(),
                 ParentRunId = parentRunId,
                 Attribution = "AutoML",
                 SnapshotId = snapshotId,
             };
+
+            return runDef;
         }
 
         private void CheckPathForDataScript(DirectoryInfo projectFolder)
@@ -88,24 +93,24 @@ namespace Azure.MachineLearning.Services.AutoML
 
         private void ValidateTask()
         {
-            if (Task.ToLowerInvariant() == "classification")
-            {
-                if (!AutoMLMetricConstants.ClassificationMetrics.Contains(AutoMLSettings.PrimaryMetric))
-                {
-                    throw new ArgumentException($"Primary metric {AutoMLSettings.PrimaryMetric} is not a valid classification metric.");
-                }
-            }
-            else if (Task.ToLowerInvariant() == "regression")
-            {
-                if (!AutoMLMetricConstants.RegressionMetrics.Contains(AutoMLSettings.PrimaryMetric))
-                {
-                    throw new ArgumentException($"Primary metric {AutoMLSettings.PrimaryMetric} is not a valid regression metric.");
-                }
-            }
-            else
-            {
-                throw new ArgumentException($"Task type {Task} is not a valid task for an AutoMLConfiguration.");
-            }
+            //if (Task.ToLowerInvariant() == "classification")
+            //{
+            //    if (!AutoMLMetricConstants.ClassificationMetrics.Contains(AutoMLSettings.PrimaryMetric))
+            //    {
+            //        throw new ArgumentException($"Primary metric {AutoMLSettings.PrimaryMetric} is not a valid classification metric.");
+            //    }
+            //}
+            //else if (Task.ToLowerInvariant() == "regression")
+            //{
+            //    if (!AutoMLMetricConstants.RegressionMetrics.Contains(AutoMLSettings.PrimaryMetric))
+            //    {
+            //        throw new ArgumentException($"Primary metric {AutoMLSettings.PrimaryMetric} is not a valid regression metric.");
+            //    }
+            //}
+            //else
+            //{
+            //    throw new ArgumentException($"Task type {Task} is not a valid task for an AutoMLConfiguration.");
+            //}
         }
     }
 }

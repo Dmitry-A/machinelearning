@@ -60,6 +60,23 @@ namespace Azure.MachineLearning.Services.AutoML
         [JsonProperty(PropertyName = "enable_tf")]
         public bool EnableTensorFlow { get; set; }
 
+        [JsonProperty(PropertyName = "debug_log")]
+        public string DebugLog { get; set; } = "automl_errors.log";
+
+        [JsonProperty(PropertyName = "images_folder")]
+        public string ImagesFolder { get; set; } = ".";
+
+        [JsonProperty(PropertyName = "enable_dnn")]
+        public bool EnableDnn { get; set; }
+
+        [JsonProperty(PropertyName = "labels_file")]
+        public string LabelsFile { get; set; }
+
+        [JsonProperty(PropertyName = "epochs")]
+        public int Epochs { get; set; }
+
+        [JsonProperty(PropertyName = "compute_target")]
+        public string ComputeTarget { get; set; }
 
         internal string ToJsonString()
         {
