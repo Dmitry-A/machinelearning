@@ -76,7 +76,6 @@ namespace AzureML
                         var algo = bestRun.bestRun.Properties.ContainsKey("run_algorithm") ? bestRun.bestRun.Properties["run_algorithm"] : "unknown";
                         var preproc = bestRun.bestRun.Properties.ContainsKey("run_preprocessor") ? bestRun.bestRun.Properties["run_preprocessor"] : "unknown";
                         bestRunStats = $"Best {runStats.GetPrimaryMetricFromProperties(autoMLRun)} metric value is {bestRun.bestScore} using algorithm {algo} and preprocessor {preproc}";
-                        throw new Exception("weeee");
                     }
 
                     if (hdRun.InTerminalState)
