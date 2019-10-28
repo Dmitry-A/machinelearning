@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Azure.MachineLearning.Services.Experiments;
 using Azure.MachineLearning.Services.Runs;
 using Azure.MachineLearning.Services.Workspaces;
@@ -13,21 +14,22 @@ namespace AzureML
 
         public static (Run bestRun, double bestScore) ReportStatus(AutoMLRun autoMLRun, Workspace workspace, Experiment experiment)
         {
-            //var setupIterationStatus = MonitorSetupIteration(autoMLRun, experiment);
+            var setupIterationStatus = MonitorSetupIteration(autoMLRun, experiment);
 
             //if (setupIterationStatus != "Completed")
             //{
             //    // TODO: not sure what to do here yet. Main run will fail and the current flow works Ok so might be nothing.
             //}
 
-            return MonitorParentRun(autoMLRun);
+            return MonitorParentRun(autoMLRun).Result;
         }
 
-        public static (Run bestRun, double bestScore) MonitorParentRun(AutoMLRun autoMLRun)
+        public static async Task<(Run bestRun, double bestScore)> MonitorParentRun(AutoMLRun autoMLRun)
         {
             var fpm = new ConsoleFixedPositionMessage(3, enableSpinner: true);
 
             var failures = new FailureCounter(30);
+            var childRunRetrieval = new FailureCounter(300);
 
             do
             {
@@ -35,7 +37,7 @@ namespace AzureML
                 {
                     Thread.Sleep(_refreshInterval);
 
-                    autoMLRun.RefreshAsync().Wait();
+                    await autoMLRun.RefreshAsync();
                     var autoMlChildRuns = autoMLRun.ListChildren();
 
                     // TODO: this isn't gonna universally work, only with images as they are now
@@ -45,7 +47,9 @@ namespace AzureML
 
                     if (hdRun == null)
                     {
-                        failures.RecordFailure("Didn't find a child run.");
+                        childRunRetrieval.RecordFailure("Didn't find a child run.");
+
+                        continue;
                     }
 
                     var hdChildRuns = hdRun.ListChildren();
@@ -62,7 +66,7 @@ namespace AzureML
                     if (completedChildRuns.Any())
                     {
                         var runStats = new RunStats();
-                        bestRun = runStats.GetBestRunAsync(completedChildRuns, runStats.GetPrimaryMetricFromProperties(autoMLRun)).Result;
+                        bestRun = await runStats.GetBestRunAsync(completedChildRuns, runStats.GetPrimaryMetricFromProperties(autoMLRun));
 
                         if (bestRun.bestRun == null)
                         {
@@ -101,7 +105,7 @@ namespace AzureML
             while (true);
         }
 
-        public static string MonitorSetupIteration(AutoMLRun autoMLRun, Experiment experiment)
+        public static async Task<string> MonitorSetupIteration(AutoMLRun autoMLRun, Experiment experiment)
         {
             Run setupIteration;
 
@@ -132,7 +136,7 @@ namespace AzureML
 
             do
             {
-                setupIteration.RefreshAsync().Wait();
+                await setupIteration.RefreshAsync();
                 fpm.WriteContent($"Setup iteration in progress, status is {setupIteration.Status}..");
 
                 if(setupIteration.InTerminalState)

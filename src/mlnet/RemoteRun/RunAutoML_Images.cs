@@ -100,7 +100,7 @@ namespace AzureML
                 Console.WriteLine($"You can also monitor this run using URL: {AutoMLRunMonitoring.GetRunUrl(parentRun, workspace.SubscriptionId.ToString(), workspace.ResourceGroupName, workspace.Name)}.");
                 Console.WriteLine();
 
-                var bestRun = AutoMLRunMonitoring.ReportStatus(parentRun, workspace, experiment);
+                var bestRun = AutoMLRunMonitoring.MonitorParentRun(parentRun).Result;
 
                 Console.WriteLine($"Completed a training run");
 
