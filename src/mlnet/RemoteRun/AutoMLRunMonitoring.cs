@@ -12,7 +12,7 @@ namespace AzureML
     {
         private static TimeSpan _refreshInterval = TimeSpan.FromSeconds(1);
 
-        public static (Run bestRun, double bestScore) ReportStatus(AutoMLRun autoMLRun, Workspace workspace, Experiment experiment)
+        public static (string Status, Run bestRun, double bestScore) ReportStatus(AutoMLRun autoMLRun, Workspace workspace, Experiment experiment)
         {
             var setupIterationStatus = MonitorSetupIteration(autoMLRun, experiment);
 
@@ -24,7 +24,7 @@ namespace AzureML
             return MonitorParentRun(autoMLRun).Result;
         }
 
-        public static async Task<(Run bestRun, double bestScore)> MonitorParentRun(AutoMLRun autoMLRun)
+        public static async Task<(string Status, Run bestRun, double bestScore)> MonitorParentRun(AutoMLRun autoMLRun)
         {
             var fpm = new ConsoleFixedPositionMessage(3, enableSpinner: true);
 
@@ -84,7 +84,7 @@ namespace AzureML
 
                         fpm.WriteContent(new[] { finalMsg, "Child run stats: " + childRunStats, bestRunStats }, finalMessage: true);
 
-                        return bestRun;
+                        return (hdRun.Status, bestRun.bestRun, bestRun.bestScore);
                     }
 
                     var statusContent = new[]

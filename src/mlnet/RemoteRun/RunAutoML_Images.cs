@@ -102,7 +102,12 @@ namespace AzureML
 
                 var bestRun = AutoMLRunMonitoring.MonitorParentRun(parentRun).Result;
 
-                Console.WriteLine($"Completed a training run");
+                Console.WriteLine($"Completed a training run, status {bestRun.Status}");
+
+                if(bestRun.Status.ToLowerInvariant() != "completed")
+                {
+                    throw new Exception("AutoML run failed");
+                }
 
                 //Console.WriteLine("Print Run Details: ");
                 //var details = parentRun.GetRunDetailsAsync().Result;
@@ -189,7 +194,7 @@ namespace AzureML
             autoMLSettings.LabelsFile = "images/WeatherData/weather.tsv";
             //autoMLSettings.ImagesFolder = "images";
             //autoMLSettings.LabelsFile = "images/crack/labels.csv";
-            autoMLSettings.Epochs = 10;
+            autoMLSettings.Epochs = 2;
             autoMLSettings.ComputeTarget = ct.Name;
 
             var autoMLConfig = new AutoMLConfiguration(
