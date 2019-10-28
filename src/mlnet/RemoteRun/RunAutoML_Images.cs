@@ -82,7 +82,7 @@ namespace AzureML
                 // Training
                 Console.WriteLine($"Starting AutoML run in workspace {workspace.Name}, experiment {experiment.Name} using compute target {aMLComputeTarget.Name}.");
 
-                // var parentRun = (AutoMLRun)experiment.Runs.List().Where(r => r.Id == "AutoML_9498b503-9e57-420a-9204-4f8375812e13").FirstOrDefault();
+                //var parentRun = (AutoMLRun)experiment.Runs.List().Where(r => r.Id == "AutoML_e4fc1f36-5943-40b2-9263-e225d360be9d").FirstOrDefault();
 
                 ////var model = run.RegisterModelAsync("", modelPath).Result;
                 //var bestModelPath1 = new FileInfo(@"models\bestModel.onnx");
@@ -100,7 +100,7 @@ namespace AzureML
                 Console.WriteLine($"You can also monitor this run using URL: {AutoMLRunMonitoring.GetRunUrl(parentRun, workspace.SubscriptionId.ToString(), workspace.ResourceGroupName, workspace.Name)}.");
                 Console.WriteLine();
 
-                AutoMLRunMonitoring.ReportStatus(parentRun, workspace, experiment);
+                var bestRun = AutoMLRunMonitoring.ReportStatus(parentRun, workspace, experiment);
 
                 Console.WriteLine($"Completed a training run");
 
@@ -121,16 +121,16 @@ namespace AzureML
                 Directory.CreateDirectory("models");
 
                 var bestModelPath = new FileInfo(@"models\bestModel.onnx");
-                var bestModelMapPath = new FileInfo(@"models\bestModelMap.json");
+                var bestModelMapPath = new FileInfo(@"models\labels.json");
                 Console.Write($"Downloading best model to {bestModelPath}..");
 
-                var bestRun = parentRun.GetBestRunAsync().Result;
+                //var bestRun = parentRun.GetBestRunAsync().Result;
 
-                var modelPath = "outputs/model.onnx";
-                var modelMapPath = "outputs/model_onnx.json";
+                var modelPath = "train_artifacts/model.onnx";
+                var modelMapPath = "train_artifacts/labels.json";
 
-                parentRun.DownloadRunArtifactAsync(bestRun, modelPath, bestModelPath).Wait();
-                parentRun.DownloadRunArtifactAsync(bestRun, modelMapPath, bestModelMapPath).Wait();
+                parentRun.DownloadRunArtifactAsync(bestRun.bestRun, modelPath, bestModelPath).Wait();
+                parentRun.DownloadRunArtifactAsync(bestRun.bestRun, modelMapPath, bestModelMapPath).Wait();
 
                 var projGen = new InferenceCsProjectBuilder();
 
@@ -189,7 +189,7 @@ namespace AzureML
             autoMLSettings.LabelsFile = "images/WeatherData/weather.tsv";
             //autoMLSettings.ImagesFolder = "images";
             //autoMLSettings.LabelsFile = "images/crack/labels.csv";
-            autoMLSettings.Epochs = 2;
+            autoMLSettings.Epochs = 10;
             autoMLSettings.ComputeTarget = ct.Name;
 
             var autoMLConfig = new AutoMLConfiguration(
@@ -210,7 +210,6 @@ namespace AzureML
             autoMLConfig.PythonVersion = new Version(3, 6, 5);
             autoMLConfig.DockerConfiguration.BaseImage = "mcr.microsoft.com/azureml/base-gpu:intelmpi2018.3-cuda10.0-cudnn7-ubuntu16.04";
 
-            autoMLConfig.PythonVersion = new Version(3, 6, 5);
             autoMLConfig.ScriptFile = new FileInfo("train.py");
 
             autoMLConfig.DataReferences = new Dictionary<string, DataReferenceConfiguration>()

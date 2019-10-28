@@ -11,65 +11,92 @@ namespace AzureML
     {
         private static TimeSpan _refreshInterval = TimeSpan.FromSeconds(1);
 
-        public static void ReportStatus(AutoMLRun autoMLRun, Workspace workspace, Experiment experiment)
+        public static (Run bestRun, double bestScore) ReportStatus(AutoMLRun autoMLRun, Workspace workspace, Experiment experiment)
         {
-            var setupIterationStatus = MonitorSetupIteration(autoMLRun, experiment);
+            //var setupIterationStatus = MonitorSetupIteration(autoMLRun, experiment);
 
-            if (setupIterationStatus != "Completed")
-            {
-                // TODO: not sure what to do here yet. Main run will fail and the current flow works Ok so might be nothing.
-            }
+            //if (setupIterationStatus != "Completed")
+            //{
+            //    // TODO: not sure what to do here yet. Main run will fail and the current flow works Ok so might be nothing.
+            //}
 
-            MonitorParentRun(autoMLRun);
+            return MonitorParentRun(autoMLRun);
         }
 
-        public static string MonitorParentRun(AutoMLRun autoMLRun)
+        public static (Run bestRun, double bestScore) MonitorParentRun(AutoMLRun autoMLRun)
         {
             var fpm = new ConsoleFixedPositionMessage(3, enableSpinner: true);
 
+            var failures = new FailureCounter(30);
+
             do
             {
-                Thread.Sleep(_refreshInterval);
-
-                autoMLRun.RefreshAsync().Wait();
-                var childRuns = autoMLRun.ListChildren();
-
-                var runsByStatus = childRuns.GroupBy(cr => cr.Status, cr => cr);
-
-                var childRunStats = string.Join(",", runsByStatus.Select(r => $"{r.Key}: {r.Count()}"));
-
-                var completedChildRuns = childRuns.Where(cr => cr.InTerminalState && cr.Status == "Completed");
-
-                (Run bestRun, double bestScore) bestRun = (null, 0);
-                string bestRunStats = "";
-
-                if (completedChildRuns.Any())
+                try
                 {
-                    var runStats = new RunStats();
-                    bestRun = runStats.GetBestRunAsync(autoMLRun.GetPagedListOfChildren(), runStats.GetPrimaryMetricFromProperties(autoMLRun)).Result;
+                    Thread.Sleep(_refreshInterval);
 
-                    var algo = bestRun.bestRun.Properties.ContainsKey("run_algorithm") ? bestRun.bestRun.Properties["run_algorithm"] : "unknown";
-                    var preproc = bestRun.bestRun.Properties.ContainsKey("run_preprocessor") ? bestRun.bestRun.Properties["run_preprocessor"] : "unknown";
-                    bestRunStats = $"Best {runStats.GetPrimaryMetricFromProperties(autoMLRun)} metric value is {bestRun.bestScore} using algorithm {algo} and preprocessor {preproc}";
+                    autoMLRun.RefreshAsync().Wait();
+                    var autoMlChildRuns = autoMLRun.ListChildren();
+
+                    // TODO: this isn't gonna universally work, only with images as they are now
+
+                    // images runs only have one child which is hyperdrive run
+                    var hdRun = autoMlChildRuns.FirstOrDefault();
+
+                    if (hdRun == null)
+                    {
+                        failures.RecordFailure("Didn't find a child run.");
+                    }
+
+                    var hdChildRuns = hdRun.ListChildren();
+
+                    var runsByStatus = hdChildRuns.GroupBy(cr => cr.Status, cr => cr);
+
+                    var childRunStats = string.Join(",", runsByStatus.Select(r => $"{r.Key}: {r.Count()}"));
+
+                    var completedChildRuns = hdChildRuns.Where(cr => cr.InTerminalState && cr.Status == "Completed" && cr.Type != "preparation");
+
+                    (Run bestRun, double bestScore) bestRun = (null, 0);
+                    string bestRunStats = "";
+
+                    if (completedChildRuns.Any())
+                    {
+                        var runStats = new RunStats();
+                        bestRun = runStats.GetBestRunAsync(completedChildRuns, runStats.GetPrimaryMetricFromProperties(autoMLRun)).Result;
+
+                        if (bestRun.bestRun == null)
+                        {
+                            continue;
+                        }
+
+                        var algo = bestRun.bestRun.Properties.ContainsKey("run_algorithm") ? bestRun.bestRun.Properties["run_algorithm"] : "unknown";
+                        var preproc = bestRun.bestRun.Properties.ContainsKey("run_preprocessor") ? bestRun.bestRun.Properties["run_preprocessor"] : "unknown";
+                        bestRunStats = $"Best {runStats.GetPrimaryMetricFromProperties(autoMLRun)} metric value is {bestRun.bestScore} using algorithm {algo} and preprocessor {preproc}";
+                        throw new Exception("weeee");
+                    }
+
+                    if (hdRun.InTerminalState)
+                    {
+                        var finalMsg = $"AutoML sweep final status is {hdRun.Status}. Run time is {(hdRun.EndTimeUtc - hdRun.CreatedUtc).Value.TotalSeconds} seconds.";
+
+                        fpm.WriteContent(new[] { finalMsg, "Child run stats: " + childRunStats, bestRunStats }, finalMessage: true);
+
+                        return bestRun;
+                    }
+
+                    var statusContent = new[]
+                    {
+                        "Running AutoML pipeline sweep..",
+                        $"Current child run stats: {childRunStats}",
+                        bestRunStats
+                    };
+
+                    fpm.WriteContent(statusContent);
                 }
-
-                if (autoMLRun.InTerminalState)
+                catch(Exception ex)
                 {
-                    var finalMsg = $"AutoML sweep final status is {autoMLRun.Status}. Run time is {(autoMLRun.EndTimeUtc - autoMLRun.CreatedUtc).Value.TotalSeconds} seconds.";
-
-                    fpm.WriteContent(new[] { finalMsg, "Child run stats: " + childRunStats, bestRunStats }, finalMessage: true);
-
-                    return autoMLRun.Status;
+                    failures.RecordFailure(ex);
                 }
-
-                var statusContent = new[]
-                {
-                    "Running AutoML pipeline sweep..",
-                    $"Current child run stats: {childRunStats}",
-                    bestRunStats
-                };
-
-                fpm.WriteContent(statusContent);
             }
             while (true);
         }

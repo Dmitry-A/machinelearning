@@ -27,28 +27,48 @@ namespace AzureML
             Run bestRun = null;
             do
             {
-                IEnumerable<Run> childRuns = await childRunPageFetcher.FetchNextPageAsync(
+                var childRuns = await childRunPageFetcher.FetchNextPageAsync(
                     customHeaders,
                     cancellationToken).ConfigureAwait(false);
 
-                foreach (var child in childRuns)
+                var innerBestRun = await GetBestRunAsync(childRuns, queryMetric, customHeaders, cancellationToken);
+
+                if (innerBestRun.bestScore > bestScore)
                 {
-                    IPageFetcher<RunMetric> childMetricPagedList = child.GetMetricsPagedList();
-
-                    double bestMetricScore = await GetBestMetricAsync(
-                        childMetricPagedList,
-                        queryMetric,
-                        customHeaders,
-                        cancellationToken).ConfigureAwait(false);
-
-                    if (bestMetricScore > bestScore)
-                    {
-                        bestScore = bestMetricScore;
-                        bestRun = child;
-                    }
+                    bestScore = innerBestRun.bestScore;
+                    bestRun = innerBestRun.bestRun;
                 }
             }
             while (!childRunPageFetcher.OnLastPage);
+
+            return (bestRun, bestScore);
+        }
+
+        public async Task<(Run bestRun, double bestScore)> GetBestRunAsync(
+            IEnumerable<Run> childRuns,
+            string queryMetric,
+            Dictionary<string, List<string>> customHeaders = null,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var bestScore = 0.0;
+            Run bestRun = null;
+
+            foreach (var child in childRuns)
+            {
+                var childMetricPagedList = child.GetMetricsPagedList();
+
+                double bestMetricScore = await GetBestMetricAsync(
+                    childMetricPagedList,
+                    queryMetric,
+                    customHeaders,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (bestMetricScore > bestScore)
+                {
+                    bestScore = bestMetricScore;
+                    bestRun = child;
+                }
+            }
 
             return (bestRun, bestScore);
         }
